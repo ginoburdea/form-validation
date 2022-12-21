@@ -284,8 +284,8 @@ const validateCountry = (country, validOptions) => {
         throw new Error('Invalid country. You must choose one from the list')
 }
 
-const validateGender = (country, validOptions) => {
-    if (validOptions.indexOf(country) === -1)
+const validateGender = (gender, validOptions) => {
+    if (validOptions.indexOf(gender) === -1)
         throw new Error('Invalid gender. You must choose one from the list')
 }
 
@@ -345,135 +345,189 @@ const fields = [
     },
 ]
 
-const form = document.getElementById('form')
-const submitButton = document.getElementById('submitButton')
+const successMessage = document.getElementById('successMessage')
 
-for (const field of fields) {
-    let el
+const createSelectEl = field => {
+    const el = document.createElement('select')
+    el.name = field.name
+    el.id = `field_${field.name}`
+    el.classList.add('form-select')
 
-    const fieldTextTypes = ['number', 'text', 'email', 'password']
-    if (fieldTextTypes.indexOf(field.type) !== -1) {
-        el = document.createElement('input')
-        el.name = field.name
-        el.id = `field_${field.name}`
-        el.classList.add('form-control')
-        el.type = field.type
-    } else if (field.type === 'select') {
-        el = document.createElement('select')
-        el.name = field.name
-        el.id = `field_${field.name}`
-        el.classList.add('form-select')
+    const emptyOptionEl = document.createElement('option')
+    emptyOptionEl.innerText = 'Select a value'
+    emptyOptionEl.disabled = true
+    emptyOptionEl.selected = true
+    el.appendChild(emptyOptionEl)
 
-        const emptyOptionEl = document.createElement('option')
-        emptyOptionEl.innerText = 'Select a value'
-        emptyOptionEl.disabled = true
-        emptyOptionEl.selected = true
-        el.appendChild(emptyOptionEl)
+    field.options.forEach(option => {
+        const optionEl = document.createElement('option')
+        optionEl.value = option.value
+        optionEl.innerText = option.label
+        el.appendChild(optionEl)
+    })
 
-        field.options.forEach(option => {
-            const optionEl = document.createElement('option')
-            optionEl.value = option.value
-            optionEl.innerText = option.label
-            el.appendChild(optionEl)
-        })
-    }
+    return el
+}
 
+const createInputEl = field => {
+    const el = document.createElement('input')
+    el.name = field.name
+    el.id = `field_${field.name}`
+    el.classList.add('form-control')
+    el.type = field.type
+
+    return el
+}
+
+const createErrorPEl = fieldName => {
     const errorP = document.createElement('p')
     errorP.classList.add('text-danger')
     errorP.classList.add('d-none')
     errorP.classList.add('m-0')
-    errorP.id = `field_${field.name}_error`
+    errorP.id = `field_${fieldName}_error`
 
-    const isCheckbox = field.type === 'checkbox'
+    return errorP
+}
 
-    const inputContainer = document.createElement(
-        isCheckbox ? 'fieldset' : 'div'
-    )
+const createInputContainer = fieldType => {
+    const inputContainer = document.createElement(fieldType)
     inputContainer.classList.add('p-0')
 
-    if (isCheckbox) {
-        const legendEl = document.createElement('legend')
-        legendEl.classList.add('fs-6')
-        legendEl.innerText = field.label
-        inputContainer.dataset.name = field.name
-        inputContainer.appendChild(legendEl)
+    return inputContainer
+}
 
-        field.options.forEach(option => {
-            const checkboxEl = document.createElement('input')
-            checkboxEl.name = option.name
-            checkboxEl.id = `field_${option.name}`
-            checkboxEl.classList.add('form-check-input')
-            checkboxEl.type = 'checkbox'
-            checkboxEl.addEventListener('input', () => {
-                successMessage.classList.add('d-none')
+const createLabelEl = (text, forId) => {
+    const label = document.createElement('label')
+    label.innerText = text
+    label.setAttribute('for', forId)
+    label.classList.add('form-label')
 
-                const errorP = document.getElementById(
-                    `field_${field.name}_error`
-                )
-                errorP.innerText = ''
-                errorP.classList.add('d-none')
+    return label
+}
 
-                field.options.forEach(opt => {
-                    document
-                        .getElementById(`field_${opt.name}_label`)
-                        .classList.remove('text-danger')
-                })
-            })
+const createLegendEl = text => {
+    const legendEl = document.createElement('legend')
+    legendEl.classList.add('fs-6')
+    legendEl.innerText = text
 
-            const labelEl = document.createElement('label')
-            labelEl.innerText = option.label
-            labelEl.setAttribute('for', checkboxEl.id)
-            labelEl.classList.add('form-label')
-            labelEl.classList.add('m-0')
-            labelEl.id = `field_${option.name}_label`
+    return legendEl
+}
 
-            const checkboxContainerEl = document.createElement('div')
-            checkboxContainerEl.classList.add('form-check')
-            checkboxContainerEl.appendChild(checkboxEl)
-            checkboxContainerEl.appendChild(labelEl)
+const createCheckboxContainerEl = (checkboxEl, labelEl) => {
+    const checkboxContainerEl = document.createElement('div')
+    checkboxContainerEl.classList.add('form-check')
+    checkboxContainerEl.appendChild(checkboxEl)
+    checkboxContainerEl.appendChild(labelEl)
 
-            inputContainer.appendChild(checkboxContainerEl)
+    return checkboxContainerEl
+}
+
+const createCheckboxEl = (optionName, fieldName, fieldOptions) => {
+    const checkboxEl = document.createElement('input')
+    checkboxEl.name = optionName
+    checkboxEl.id = `field_${optionName}`
+    checkboxEl.classList.add('form-check-input')
+    checkboxEl.type = 'checkbox'
+
+    checkboxEl.addEventListener('input', () => {
+        successMessage.classList.add('d-none')
+
+        const errorP = document.getElementById(`field_${fieldName}_error`)
+        errorP.innerText = ''
+        errorP.classList.add('d-none')
+
+        fieldOptions.forEach(opt => {
+            document
+                .getElementById(`field_${opt.name}_label`)
+                .classList.remove('text-danger')
         })
-    } else {
-        el.addEventListener('input', () => {
-            successMessage.classList.add('d-none')
+    })
 
-            errorP.innerText = ''
-            errorP.classList.add('d-none')
-            el.classList.remove('border-danger')
-        })
+    return checkboxEl
+}
 
-        const label = document.createElement('label')
-        label.innerText = field.label
-        label.setAttribute('for', el.id)
-        label.classList.add('form-label')
+const createFieldsetInputContainer = field => {
+    const inputContainer = createInputContainer('fieldset')
 
-        inputContainer.appendChild(label)
-        inputContainer.appendChild(el)
+    inputContainer.dataset.name = field.name
+    inputContainer.appendChild(createLegendEl(field.label))
 
-        if (field.options && field.type !== 'select') {
-            const countriesDatalist = document.createElement('datalist')
-            countriesDatalist.id = `field_${field.name}_datalist`
-            el.setAttribute('list', countriesDatalist.id)
+    field.options.forEach(option => {
+        const checkboxEl = createCheckboxEl(
+            option.name,
+            field.name,
+            field.options
+        )
 
-            countries.forEach(country => {
-                const optionEl = document.createElement('option')
-                optionEl.value = country
-                optionEl.innerText = country
+        const labelEl = createLabelEl(option.label, checkboxEl.id)
+        labelEl.classList.add('m-0')
+        labelEl.id = `field_${option.name}_label`
 
-                countriesDatalist.appendChild(optionEl)
-            })
+        inputContainer.appendChild(
+            createCheckboxContainerEl(checkboxEl, labelEl)
+        )
+    })
 
-            inputContainer.appendChild(countriesDatalist)
-        }
-    }
+    inputContainer.appendChild(createErrorPEl(field.name))
+
+    return inputContainer
+}
+
+const createDatalistEl = (fieldName, fieldOptions) => {
+    const countriesDatalist = document.createElement('datalist')
+    countriesDatalist.id = `field_${fieldName}_datalist`
+
+    fieldOptions.forEach(option => {
+        const optionEl = document.createElement('option')
+        optionEl.value = option
+        optionEl.innerText = option
+
+        countriesDatalist.appendChild(optionEl)
+    })
+
+    return countriesDatalist
+}
+
+const createDivInputContainer = field => {
+    const el =
+        field.type === 'select' ? createSelectEl(field) : createInputEl(field)
+
+    const errorP = createErrorPEl(field.name)
+    el.addEventListener('input', () => {
+        successMessage.classList.add('d-none')
+
+        errorP.innerText = ''
+        errorP.classList.add('d-none')
+        el.classList.remove('border-danger')
+    })
+
+    const inputContainer = createInputContainer('div')
+
+    inputContainer.appendChild(createLabelEl(field.label, el.id))
+    inputContainer.appendChild(el)
     inputContainer.appendChild(errorP)
 
+    const fieldHasDatalist = field.options && field.type !== 'select'
+    if (fieldHasDatalist) {
+        const datalistEl = createDatalistEl(field.name, field.options)
+        el.setAttribute('list', datalistEl.id)
+
+        inputContainer.appendChild(datalistEl)
+    }
+
+    return inputContainer
+}
+
+const submitButton = document.getElementById('submitButton')
+for (const field of fields) {
+    const inputContainer =
+        field.type === 'checkbox'
+            ? createFieldsetInputContainer(field)
+            : createDivInputContainer(field)
     submitButton.parentNode.insertBefore(inputContainer, submitButton)
 }
 
-const successMessage = document.getElementById('successMessage')
-
+const form = document.getElementById('form')
 form.addEventListener('submit', event => {
     event.preventDefault()
     successMessage.classList.add('d-none')
@@ -491,15 +545,25 @@ form.addEventListener('submit', event => {
                 return
             }
 
-            field.validation(
-                field.type === 'number'
-                    ? +form[field.name].value
-                    : form[field.name].value,
-                field.options &&
-                    (field.options[0].value
-                        ? field.options.map(op => op.value)
-                        : field.options)
-            )
+            if (field.type === 'number') {
+                field.validation(+form[field.name].value)
+                return
+            }
+
+            if (field.type === 'select') {
+                field.validation(
+                    form[field.name].value,
+                    field.options.map(option => option.value)
+                )
+                return
+            }
+
+            if (field?.options) {
+                field.validation(form[field.name].value, field.options)
+                return
+            }
+
+            field.validation(form[field.name].value)
         } catch (validationError) {
             errorsCount++
 
@@ -507,21 +571,20 @@ form.addEventListener('submit', event => {
             errorP.classList.remove('d-none')
             errorP.innerText = validationError.message
 
-            if (field.type === 'checkbox') {
-                field.options
-                    .filter(option => !form[option.name].checked)
-                    .forEach(option => {
-                        document
-                            .getElementById(`field_${option.name}_label`)
-                            .classList.add('text-danger')
-                    })
-            } else {
+            if (field.type !== 'checkbox') {
                 form[field.name].classList.add('border-danger')
+                return
             }
+
+            field.options
+                .filter(option => !form[option.name].checked)
+                .forEach(option => {
+                    document
+                        .getElementById(`field_${option.name}_label`)
+                        .classList.add('text-danger')
+                })
         }
     })
 
-    if (!errorsCount) {
-        successMessage.classList.remove('d-none')
-    }
+    if (errorsCount === 0) successMessage.classList.remove('d-none')
 })
